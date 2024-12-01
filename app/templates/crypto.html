@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Toolkit - Cybersecurity Suite</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Crypto Toolkit</h1>
+        <a href="{{ url_for('main.index') }}">Back to Home</a>
+    </header>
+    <main>
+        <form id="crypto-form">
+            <select name="operation" required>
+                <option value="rsa_encrypt">RSA Encrypt</option>
+                <option value="rsa_decrypt">RSA Decrypt</option>
+                <option value="aes_encrypt">AES Encrypt</option>
+                <option value="aes_decrypt">AES Decrypt</option>
+                <option value="des_encrypt">DES Encrypt</option>
+                <option value="des_decrypt">DES Decrypt</option>
+                <option value="hill_cipher_encrypt">Hill Cipher Encrypt</option>
+                <option value="hill_cipher_decrypt">Hill Cipher Decrypt</option>
+                <option value="elgamal_encrypt">ElGamal Encrypt</option>
+                <option value="elgamal_decrypt">ElGamal Decrypt</option>
+                <option value="diffie_hellman">Diffie-Hellman Key Exchange</option>
+            </select>
+            <textarea name="text" placeholder="Enter text" required></textarea>
+            <input type="text" name="key" placeholder="Enter key" required>
+            <button type="submit">Process</button>
+        </form>
+        <div id="results"></div>
+    </main>
+    <script src="{{ url_for('static', filename='js/crypto.js') }}"></script>
+</body>
+</html>
+
