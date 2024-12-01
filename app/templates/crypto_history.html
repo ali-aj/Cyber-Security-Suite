@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto History - Cybersecurity Suite</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Crypto Operation History</h1>
+        <a href="{{ url_for('main.index') }}">Back to Home</a>
+    </header>
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Operation Type</th>
+                    <th>Input Text</th>
+                    <th>Output Text</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for op in operations %}
+                <tr>
+                    <td>{{ op.id }}</td>
+                    <td>{{ op.operation_type }}</td>
+                    <td>{{ op.input_text }}</td>
+                    <td>{{ op.output_text }}</td>
+                    <td>{{ op.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
+
