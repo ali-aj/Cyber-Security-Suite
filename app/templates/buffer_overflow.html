@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buffer Overflow Simulation - Cybersecurity Suite</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Buffer Overflow Simulation</h1>
+        <a href="{{ url_for('main.index') }}">Back to Home</a>
+    </header>
+    <main>
+        <form id="buffer-overflow-form">
+            <input type="text" name="input_data" placeholder="Enter input data" required>
+            <button type="submit">Simulate</button>
+        </form>
+        <div id="results"></div>
+    </main>
+    <script src="{{ url_for('static', filename='js/buffer_overflow.js') }}"></script>
+</body>
+</html>
+
