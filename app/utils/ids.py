@@ -1,5 +1,4 @@
 import re
-
 def analyze(log_data):
     patterns = {
         # SQL Injection patterns
@@ -11,7 +10,6 @@ def analyze(log_data):
         # Path Traversal patterns
         'path_traversal': r"(?:\.\./|\.\.\\|/etc/passwd|/etc/shadow|C:\\\\windows\\\\system32)"
     }
-
     results = {}
     for attack_type, pattern in patterns.items():
         if re.search(pattern, log_data, re.IGNORECASE):
