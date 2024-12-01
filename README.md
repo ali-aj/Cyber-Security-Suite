@@ -23,9 +23,9 @@ This project is an integrated cybersecurity platform that simulates and defends 
 ## Usage
 
 1. Initialize the database:
-`flask db init `
-`flask db migrate -m "Initial migration."`
-`flask db upgrade`
+   - `flask db init `
+   - `flask db migrate -m "Initial migration."`
+   - `flask db upgrade`
 2. Set the Flask application environment variable:
    - On CMD: `set FLASK_APP=app:create_app`
    - On Powershell: `$env:FLASK_APP = "app:create_app"`  
