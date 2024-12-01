@@ -22,19 +22,16 @@ This project is an integrated cybersecurity platform that simulates and defends 
 
 ## Usage
 
-flask db migrate -m "Initial migration."
-flask db upgrade
-On Powershell: $env:FLASK_APP = "app:create_app" 
-On CMD: set FLASK_APP=app:create_app
-flask db init   
-1. Run the application: `python main.py`
-2. Open a web browser and navigate to `http://localhost:5000`
+1. Initialize the database:
+`flask db init `
+`flask db migrate -m "Initial migration."`
+`flask db upgrade`
+2. Set the Flask application environment variable:
+   - On CMD: `set FLASK_APP=app:create_app`
+   - On Powershell: `$env:FLASK_APP = "app:create_app"`  
+3. Run the application: `python main.py`
+4. Open a web browser and navigate to `http://localhost:5000`
 
 ## Contributing
 
 Please read CONTRIBUTING.md for details on our code of conduct, and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE.md file for details.
-
