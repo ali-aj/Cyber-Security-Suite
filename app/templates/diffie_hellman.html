@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Diffie-Hellman Key Exchange</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-exchange-alt"></i> Diffie-Hellman Key Exchange</h1>
+        <nav>
+            <!-- Same navigation as other pages -->
+        </nav>
+    </header>
+
+    <main>
+        <div class="crypto-container">
+            <div class="operation-section">
+                <h3><i class="fas fa-key"></i> Generate Keys</h3>
+                <form id="generate-form">
+                    <div class="form-group">
+                        <label for="prime">Prime Number (p):</label>
+                        <input type="number" id="prime" name="prime" required min="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="generator">Generator (g):</label>
+                        <input type="number" id="generator" name="generator" required min="2">
+                    </div>
+                    <button type="submit" class="btn-generate"><i class="fas fa-cog"></i> Generate Keys</button>
+                </form>
+                <div class="result">
+                    <div class="result-item">
+                        <label>Alice's Public Key:</label>
+                        <textarea id="public-key-alice" readonly></textarea>
+                        <button class="btn-copy" data-target="public-key-alice"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="result-item">
+                        <label>Bob's Public Key:</label>
+                        <textarea id="public-key-bob" readonly></textarea>
+                        <button class="btn-copy" data-target="public-key-bob"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="result-item">
+                        <label>Shared Secret Key:</label>
+                        <textarea id="shared-key-result" readonly></textarea>
+                        <button class="btn-copy" data-target="shared-key-result"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div id="toast"></div>
+    <script src="{{ url_for('static', filename='js/diffie_hellman.js') }}"></script>
+</body>
+</html>
