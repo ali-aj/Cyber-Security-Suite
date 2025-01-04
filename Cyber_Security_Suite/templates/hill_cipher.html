@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block title %}Hill Cipher - Cryptography Tool{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .crypto-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .operation-section {
+        width: 48%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .operation-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-group textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-group textarea:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-encrypt,
+    .btn-decrypt {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .btn-encrypt {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+    }
+
+    .btn-decrypt {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+
+    .btn-encrypt:hover,
+    .btn-decrypt:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .result {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .result-item textarea {
+        background: white;
+        border: 1px solid #e1e1e1;
+        border-radius: 8px;
+        padding: 1rem;
+        width: 100%;
+        margin: 0.5rem 0;
+        min-height: 100px;
+    }
+
+    .btn-copy {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: var(--primary-color);
+        color: white;
+        transition: all 0.3s ease;
+        margin-top: 0.5rem;
+    }
+
+    .btn-copy:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .crypto-container {
+            flex-direction: column;
+        }
+        .operation-section {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-header"><i class="fas fa-table"></i> Hill Cipher</h1>
+<div class="crypto-container">
+    <div class="operation-section">
+        <h3><i class="fas fa-lock"></i> Encryption</h3>
+        <form id="encrypt-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="plaintext">Plain Text:</label>
+                <textarea id="plaintext" name="plaintext" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="key-matrix">Key Matrix:</label>
+                <textarea id="key-matrix" name="key_matrix" required placeholder="Enter 2x2 or 3x3 matrix"></textarea>
+            </div>
+            <button type="submit" class="btn-encrypt"><i class="fas fa-lock"></i> Encrypt</button>
+        </form>
+        <div class="result">
+            <div class="result-item">
+                <label>Cipher Text:</label>
+                <textarea id="encrypted-result" readonly></textarea>
+                <button class="btn-copy" data-target="encrypted-result"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="operation-section">
+        <h3><i class="fas fa-unlock"></i> Decryption</h3>
+        <form id="decrypt-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="ciphertext">Cipher Text:</label>
+                <textarea id="ciphertext" name="ciphertext" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="decrypt-key-matrix">Key Matrix:</label>
+                <textarea id="decrypt-key-matrix" name="key_matrix" required placeholder="Enter 2x2 or 3x3 matrix"></textarea>
+            </div>
+            <button type="submit" class="btn-decrypt"><i class="fas fa-unlock"></i> Decrypt</button>
+        </form>
+        <div class="result">
+            <div class="result-item">
+                <label>Plain Text:</label>
+                <textarea id="decrypted-result" readonly></textarea>
+                <button class="btn-copy" data-target="decrypted-result"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = {
+        encrypt: document.getElementById('encrypt-form'),
+        decrypt: document.getElementById('decrypt-form')
+    };
+
+    // Matrix validation
+    function validateMatrix(matrix) {
+        try {
+            const rows = matrix.trim().split('\n');
+            const size = rows.length;
+            
+            if (size !== 2 && size !== 3) {
+                throw new Error('Matrix must be 2x2 or 3x3');
+            }
+
+            const numMatrix = rows.map(row => {
+                const nums = row.trim().split(/\s+/).map(num => {
+                    const val = parseInt(num);
+                    if (isNaN(val)) throw new Error('Matrix must contain only numbers');
+                    return val;
+                });
+                if (nums.length !== size) throw new Error('Matrix must be square');
+                return nums;
+            });
+
+            return numMatrix;
+        } catch (error) {
+            throw new Error(`Invalid matrix format: ${error.message}`);
+        }
+    }
+
+    // Form submission handler
+    async function handleSubmit(e, action) {
+        e.preventDefault();
+        const form = e.target;
+        const resultArea = document.getElementById(`${action}ed-result`);
+        const resultDiv = form.nextElementSibling;
+
+        try {
+            const matrix = validateMatrix(form.querySelector('[name="key_matrix"]').value);
+            const formData = new FormData(form);
+            formData.append('action', 'hill_cipher_' + action);
+            formData.append('matrix', JSON.stringify(matrix));
+
+            const response = await fetch('/hill_cipher/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+
+            resultArea.value = data.result;
+            resultDiv.style.display = 'block';
+
+        } catch (error) {
+            resultArea.value = `Error: ${error.message}`;
+            resultDiv.style.display = 'block';
+        }
+    }
+
+    // Copy functionality
+    function setupCopyButtons() {
+        document.querySelectorAll('.btn-copy').forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.dataset.target;
+                const textarea = document.getElementById(targetId);
+                textarea.select();
+                document.execCommand('copy');
+                
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => this.innerHTML = originalText, 2000);
+            });
+        });
+    }
+
+    // Matrix format helper
+    function formatMatrixInput(textarea) {
+        textarea.addEventListener('input', function() {
+            const lines = this.value.split('\n');
+            if (lines.length > 3) {
+                this.value = lines.slice(0, 3).join('\n');
+            }
+        });
+    }
+
+    // Setup event listeners
+    forms.encrypt.addEventListener('submit', e => handleSubmit(e, 'encrypt'));
+    forms.decrypt.addEventListener('submit', e => handleSubmit(e, 'decrypt'));
+    
+    document.querySelectorAll('[name="key_matrix"]').forEach(formatMatrixInput);
+    setupCopyButtons();
+});
+</script>
+{% endblock %}

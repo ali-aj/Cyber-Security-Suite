@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Buffer Overflow Simulation - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .buffer-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .terminal {
+        background: #1e1e1e;
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Consolas', monospace;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+    }
+
+    .memory-view {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 4px;
+        padding: 1rem;
+        background: #2d2d2d;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    .memory-cell {
+        background: #3d3d3d;
+        padding: 0.5rem;
+        text-align: center;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .memory-cell.overflow {
+        background: var(--accent-color);
+        animation: pulse 1s infinite;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        font-family: 'Consolas', monospace;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-simulate {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-simulate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    #results {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .buffer-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+        .memory-view {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="buffer-container">
+    <h1 class="page-header"><i class="fas fa-exclamation-triangle"></i> Buffer Overflow Simulation</h1>
+    
+    <div class="terminal">
+        <div class="memory-view" id="memory-visualization"></div>
+    </div>
+
+    <form id="buffer-overflow-form" method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="input_data">Input Data:</label>
+            <input type="text" id="input_data" name="input_data" 
+                   placeholder="Enter input string to simulate overflow" required>
+        </div>
+        <button type="submit" class="btn-simulate">
+            <i class="fas fa-play"></i> Simulate Overflow
+        </button>
+    </form>
+
+    <div id="results"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const BUFFER_SIZE = 32;
+    const memoryView = document.getElementById('memory-visualization');
+    const form = document.getElementById('buffer-overflow-form');
+    const resultsDiv = document.getElementById('results');
+    let memoryCells = [];
+
+    // Initialize memory visualization
+    function initializeMemory() {
+        memoryView.innerHTML = '';
+        memoryCells = [];
+        
+        for (let i = 0; i < BUFFER_SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'memory-cell';
+            cell.textContent = '00';
+            cell.setAttribute('data-index', i);
+            memoryView.appendChild(cell);
+            memoryCells.push(cell);
+        }
+    }
+
+    // Simulate buffer overflow
+    async function simulateOverflow(input) {
+        const bytes = Array.from(input).map(char => char.charCodeAt(0).toString(16));
+        
+        // Reset cells
+        memoryCells.forEach(cell => {
+            cell.className = 'memory-cell';
+            cell.textContent = '00';
+        });
+
+        // Populate memory cells
+        for (let i = 0; i < bytes.length; i++) {
+            if (i < memoryCells.length) {
+                memoryCells[i].textContent = bytes[i];
+                await sleep(50); // Animation delay
+            }
+            
+            if (i >= BUFFER_SIZE / 2) {
+                memoryCells[i % memoryCells.length].classList.add('overflow');
+            }
+        }
+
+        return {
+            inputLength: bytes.length,
+            overflow: bytes.length > BUFFER_SIZE / 2,
+            overflowSize: Math.max(0, bytes.length - BUFFER_SIZE / 2)
+        };
+    }
+
+    // Form submission handler
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const input = document.getElementById('input_data').value;
+        
+        try {
+            const result = await simulateOverflow(input);
+            
+            resultsDiv.innerHTML = `
+                <h3>Simulation Results</h3>
+                <div class="result-details">
+                    <p><strong>Input Length:</strong> ${result.inputLength} bytes</p>
+                    <p><strong>Buffer Size:</strong> ${BUFFER_SIZE/2} bytes</p>
+                    <p><strong>Status:</strong> 
+                        <span class="${result.overflow ? 'text-danger' : 'text-success'}">
+                            ${result.overflow ? 'Buffer Overflow Detected!' : 'Safe Input'}
+                        </span>
+                    </p>
+                    ${result.overflow ? `
+                        <p><strong>Overflow Size:</strong> ${result.overflowSize} bytes</p>
+                        <div class="alert alert-danger">
+                            Warning: Buffer overflow could lead to memory corruption and 
+                            potential security vulnerabilities!
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+        } catch (error) {
+            resultsDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Error: ${error.message}
+                </div>
+            `;
+        }
+    });
+
+    // Utility functions
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Initialize memory visualization on load
+    initializeMemory();
+});
+</script>
+{% endblock %}

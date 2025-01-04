@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Intrusion Detection System - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ids-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #ids-form {
+        margin-bottom: 2rem;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        resize: vertical;
+        transition: all 0.3s ease;
+    }
+
+    textarea:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-analyze {
+        width: 100%;
+        padding: 1rem;
+        margin-top: 1rem;
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-analyze:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    #results {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        display: none;
+    }
+
+    .alert {
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+        border-left: 4px solid;
+    }
+
+    .alert-danger {
+        background: #fee2e2;
+        border-color: #ef4444;
+    }
+
+    .alert-warning {
+        background: #fef3c7;
+        border-color: #f59e0b;
+    }
+
+    .alert-info {
+        background: #e0f2fe;
+        border-color: #3b82f6;
+    }
+
+    .loading {
+        text-align: center;
+        display: none;
+        padding: 2rem;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--secondary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .ids-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ids-container">
+    <h1 class="page-header"><i class="fas fa-shield-alt"></i> Intrusion Detection System</h1>
+    <form id="ids-form" method="post">
+        {% csrf_token %}
+        <textarea name="log_data" placeholder="Enter log data for analysis..." required></textarea>
+        <button type="submit" class="btn-analyze">
+            <i class="fas fa-search"></i> Analyze Logs
+        </button>
+    </form>
+    <div class="loading">
+        <div class="loading-spinner"></div>
+        <p>Analyzing log data...</p>
+    </div>
+    <div id="results"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('ids-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = this;
+    const loadingDiv = document.querySelector('.loading');
+    const resultsDiv = document.getElementById('results');
+    
+    resultsDiv.innerHTML = '';
+    
+    try {
+        loadingDiv.style.display = 'block';
+        resultsDiv.style.display = 'none';
+        
+        const formData = new FormData(form);
+        
+        const response = await fetch('/ids/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.message || 'Analysis failed');
+        
+        // Build results HTML
+        let resultsHTML = `
+            <h3>Analysis Results</h3>
+            <div class="alert alert-${getSeverityClass(data.results.severity)}">
+                <p><strong>Analysis Time:</strong> ${data.timestamp}</p>
+                <p><strong>Overall Severity:</strong> ${data.results.severity.toUpperCase()}</p>
+            </div>`;
+            
+        // Add findings
+        for (const [type, details] of Object.entries(data.results.findings)) {
+            if (details.detected) {
+                resultsHTML += `
+                    <div class="alert alert-${getSeverityClass(details.severity)}">
+                        <h4>${type.replace(/_/g, ' ').toUpperCase()}</h4>
+                        <p><strong>Detections:</strong> ${details.count}</p>
+                        <p><strong>Message:</strong> ${details.message}</p>
+                        <p><strong>Remediation:</strong> ${details.remediation}</p>
+                    </div>`;
+            }
+        }
+        
+        // Add statistics if available
+        if (data.results.statistics) {
+            resultsHTML += `
+                <div class="alert alert-info">
+                    <h4>Statistics</h4>
+                    <p><strong>Unique IPs:</strong> ${Object.keys(data.results.statistics.ips).length}</p>
+                    <p><strong>Time Range:</strong> ${data.results.statistics.timestamps[0]} to ${data.results.statistics.timestamps[data.results.statistics.timestamps.length-1]}</p>
+                </div>`;
+        }
+        
+        resultsDiv.innerHTML = resultsHTML;
+        
+    } catch (error) {
+        resultsDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <p><strong>Error:</strong> ${error.message}</p>
+            </div>`;
+        console.error('IDS Analysis Error:', error);
+        
+    } finally {
+        loadingDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        resultsDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+});
+
+// Utility function to map severity to CSS classes
+function getSeverityClass(severity) {
+    const severityMap = {
+        'high': 'danger',
+        'medium': 'warning',
+        'low': 'info',
+        'info': 'info'
+    };
+    return severityMap[severity?.toLowerCase()] || 'info';
+}
+</script>
+{% endblock %}

@@ -18,19 +18,17 @@ This project is an integrated cybersecurity platform that simulates and defends 
 3. Activate the virtual environment:
    - On Windows: `venv\Scripts\activate`
    - On macOS and Linux: `source venv/bin/activate`
+3. Navigate to Project Directory:
+   - `cd Cyber_Security_Suite`
 4. Install the required packages: `pip install -r requirements.txt`
 
 ## Usage
 
 1. Initialize the database:
-   - `flask db init `
-   - `flask db migrate -m "Initial migration."`
-   - `flask db upgrade`
-2. Set the Flask application environment variable:
-   - On CMD: `set FLASK_APP=app:create_app`
-   - On Powershell: `$env:FLASK_APP = "app:create_app"`  
-3. Run the application: `python main.py`
-4. Open a web browser and navigate to `http://localhost:5000`
+   - `python manage.py makemigrations`
+   - `python manage.py migrate`
+2. Run the application: `python manage.py runserver`
+3. Open a web browser and access the application
 
 ## Contributing
 

@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan History - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .history-container {
+        padding: 2rem;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .search-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.8rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: var(--primary-color);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    th:hover {
+        background: #34495e;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    .status-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .status-success {
+        background: #d1f2eb;
+        color: #27ae60;
+    }
+
+    .status-warning {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .status-danger {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+
+    .pagination-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: var(--secondary-color);
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .pagination-btn:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+    }
+
+    .btn-export {
+        padding: 0.8rem 1.5rem;
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-export:hover {
+        background: #2980b9;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .history-container {
+            padding: 1rem;
+        }
+        .search-bar {
+            flex-direction: column;
+        }
+        table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <div class="page-header">
+        <h1>Scan History</h1>
+        <button class="btn-export">
+            <i class="fas fa-download"></i> Export
+        </button>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" class="search-input" placeholder="Search scans...">
+        <select class="search-input">
+            <option value="">All Types</option>
+            <option value="xss">XSS</option>
+            <option value="sql">SQL Injection</option>
+            <option value="other">Other</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID <i class="fas fa-sort"></i></th>
+                    <th>URL <i class="fas fa-sort"></i></th>
+                    <th>Scan Type <i class="fas fa-sort"></i></th>
+                    <th>Result <i class="fas fa-sort"></i></th>
+                    <th>Timestamp <i class="fas fa-sort"></i></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in scans %}
+                <tr>
+                    <td>{{ scan.id }}</td>
+                    <td>{{ scan.url }}</td>
+                    <td>{{ scan.scan_type }}</td>
+                    <td>
+                        <span class="status-badge status-{{ scan.status }}">
+                            {{ scan.result }}
+                        </span>
+                    </td>
+                    <td>{{ scan.timestamp|date:"Y-m-d H:i:s" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No scan history found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <button class="pagination-btn"><i class="fas fa-chevron-left"></i></button>
+        <button class="pagination-btn">1</button>
+        <button class="pagination-btn">2</button>
+        <button class="pagination-btn">3</button>
+        <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input.search-input');
+    const typeSelect = document.querySelector('select.search-input');
+    const tableBody = document.querySelector('tbody');
+    const sortHeaders = document.querySelectorAll('th');
+    const exportBtn = document.querySelector('.btn-export');
+    let currentSort = { column: 'id', direction: 'asc' };
+    
+    // Search functionality
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeSelect.value.toLowerCase();
+        
+        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
+            const url = row.cells[1].textContent.toLowerCase();
+            const type = row.cells[2].textContent.toLowerCase();
+            const shouldShow = url.includes(searchTerm) && 
+                             (!selectedType || type === selectedType);
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    }
+    
+    // Sorting functionality
+    function sortTable(column) {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        const direction = currentSort.column === column && 
+                         currentSort.direction === 'asc' ? 'desc' : 'asc';
+        
+        rows.sort((a, b) => {
+            let aVal = a.cells[getColumnIndex(column)].textContent;
+            let bVal = b.cells[getColumnIndex(column)].textContent;
+            
+            if (column === 'timestamp') {
+                aVal = new Date(aVal);
+                bVal = new Date(bVal);
+            }
+            
+            if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+        
+        rows.forEach(row => tableBody.appendChild(row));
+        currentSort = { column, direction };
+        
+        // Update sort icons
+        sortHeaders.forEach(header => {
+            const icon = header.querySelector('i');
+            if (header.textContent.toLowerCase().includes(column)) {
+                icon.className = `fas fa-sort-${direction === 'asc' ? 'up' : 'down'}`;
+            } else {
+                icon.className = 'fas fa-sort';
+            }
+        });
+    }
+    
+    // Export functionality
+    function exportData() {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        let csv = 'ID,URL,Scan Type,Result,Timestamp\n';
+        
+        rows.forEach(row => {
+            const cells = Array.from(row.cells);
+            csv += cells.map(cell => `"${cell.textContent}"`).join(',') + '\n';
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `scan_history_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+    
+    // Pagination functionality
+    function setupPagination() {
+        const itemsPerPage = 10;
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        const pageCount = Math.ceil(rows.length / itemsPerPage);
+        const paginationDiv = document.querySelector('.pagination');
+        
+        function showPage(page) {
+            rows.forEach((row, index) => {
+                row.style.display = 
+                    index >= (page - 1) * itemsPerPage && 
+                    index < page * itemsPerPage ? '' : 'none';
+            });
+        }
+        
+        paginationDiv.innerHTML = '';
+        if (pageCount > 1) {
+            for (let i = 1; i <= pageCount; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'pagination-btn';
+                btn.textContent = i;
+                btn.onclick = () => showPage(i);
+                paginationDiv.appendChild(btn);
+            }
+        }
+        
+        showPage(1);
+    }
+    
+    // Utility functions
+    function getColumnIndex(columnName) {
+        const headers = Array.from(sortHeaders);
+        return headers.findIndex(header => 
+            header.textContent.toLowerCase().includes(columnName.toLowerCase()));
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', filterTable);
+    typeSelect.addEventListener('change', filterTable);
+    sortHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const column = header.textContent.split(' ')[0].toLowerCase();
+            sortTable(column);
+        });
+    });
+    exportBtn.addEventListener('click', exportData);
+    
+    // Initial setup
+    setupPagination();
+});
+</script>
+{% endblock %}

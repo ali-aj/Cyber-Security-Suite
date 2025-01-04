@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Comprehensive Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard {
+        padding: 2rem;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .welcome-section {
+        text-align: center;
+        margin-bottom: 3rem;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    }
+
+    .welcome-section h1 {
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+    }
+
+    .card-icon {
+        font-size: 2.5rem;
+        color: var(--secondary-color);
+        margin-bottom: 1.5rem;
+        transition: transform 0.3s ease;
+    }
+
+    .card:hover .card-icon {
+        transform: scale(1.1);
+    }
+
+    .card h2 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .card p {
+        color: var(--text-color);
+        line-height: 1.6;
+    }
+
+    .quick-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard {
+            padding: 1rem;
+        }
+        .card-grid {
+            gap: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>Welcome to the Comprehensive Cybersecurity Suite</h1>
+        <p>Your all-in-one solution for security analysis and protection</p>
+    </div>
+
+    <div class="quick-stats">
+        <div class="stat-card">
+            <div class="stat-number">{{ scan_count }}</div>
+            <div>Total Scans</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ threat_count }}</div>
+            <div>Threats Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ crypto_count }}</div>
+            <div>Crypto Operations</div>
+        </div>
+    </div>
+
+    <div class="card-grid">
+        <div class="card" data-url="{% url 'scan_history' %}">
+            <div class="card-icon"><i class="fas fa-history"></i></div>
+            <h2>Scan History</h2>
+            <p>View your past scan results and analyze security trends</p>
+        </div>
+        <div class="card" data-url="{% url 'ids_logs' %}">
+            <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+            <h2>IDS Logs</h2>
+            <p>Access and review intrusion detection system logs</p>
+        </div>
+        <div class="card" data-url="{% url 'crypto_history' %}">
+            <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+            <h2>Crypto History</h2>
+            <p>Track your cryptographic operations and outcomes</p>
+        </div>
+        <div class="card" data-url="{% url 'xss_scan' %}">
+            <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+            <h2>XSS Scanner</h2>
+            <p>Detect and prevent cross-site scripting vulnerabilities</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', function() {
+            window.location.href = this.dataset.url;
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block title %}ElGamal Encryption/Decryption{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .crypto-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        animation: slideUp 0.5s ease;
+    }
+
+    .operation-section {
+        width: 48%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .operation-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-encrypt,
+    .btn-decrypt {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-encrypt {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+    }
+
+    .btn-decrypt {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+
+    .btn-encrypt:hover:not([disabled]),
+    .btn-decrypt:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn-encrypt[disabled] {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .result {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .validation-message {
+        color: var(--accent-color);
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .validation-message.show {
+        opacity: 1;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+        .crypto-container {
+            flex-direction: column;
+        }
+        .operation-section {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-header"><i class="fas fa-key"></i> ElGamal Encryption/Decryption</h1>
+<div class="crypto-container">
+    <div class="operation-section">
+        <h3><i class="fas fa-lock"></i> Encryption</h3>
+        <form id="encrypt-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea name="message" id="message" required placeholder="Enter message to encrypt"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="prime">Prime Number (p):</label>
+                <input type="number" id="prime" name="prime" required min="2" placeholder="Enter prime number">
+                <span class="validation-message" id="prime-validation"></span>
+            </div>
+            <div class="form-group">
+                <label for="primitive-root">Primitive Root (α):</label>
+                <input type="number" id="primitive-root" name="primitive-root" required min="1" placeholder="Enter primitive root">
+                <span class="validation-message" id="root-validation"></span>
+            </div>
+            <div class="form-group">
+                <label for="private-key">Private Key (d):</label>
+                <input type="number" id="private-key" name="private-key" required min="1" placeholder="Enter private key">
+                <span class="validation-message" id="key-validation"></span>
+            </div>
+            <button type="submit" class="btn-encrypt" disabled><i class="fas fa-lock"></i> Encrypt</button>
+        </form>
+        <div class="result">
+            <div class="result-item">
+                <label>Public Key (β):</label>
+                <textarea id="public-key-result" readonly></textarea>
+                <button class="btn-copy" data-target="public-key-result"><i class="fas fa-copy"></i></button>
+            </div>
+            <div class="result-item">
+                <label>Cipher Text (C1, C2):</label>
+                <textarea id="cipher-result" readonly></textarea>
+                <button class="btn-copy" data-target="cipher-result"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="operation-section">
+        <h3><i class="fas fa-unlock"></i> Decryption</h3>
+        <form id="decrypt-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="c1">C1:</label>
+                <input type="text" id="c1" name="c1" required placeholder="Enter C1">
+            </div>
+            <div class="form-group">
+                <label for="c2">C2:</label>
+                <input type="text" id="c2" name="c2" required placeholder="Enter C2">
+            </div>
+            <div class="form-group">
+                <label for="peer-key-input">Peer Key:</label>
+                <input type="text" id="peer-key-input" name="peer-key" required placeholder="Enter Peer Key">
+            </div>
+            <button type="submit" class="btn-decrypt"><i class="fas fa-unlock"></i> Decrypt</button>
+        </form>
+        <div class="result">
+            <div class="result-item">
+                <label>Decrypted Text:</label>
+                <textarea id="decrypted-result" readonly></textarea>
+                <button class="btn-copy" data-target="decrypted-result"><i class="fas fa-copy"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const encryptForm = document.getElementById('encrypt-form');
+    const decryptForm = document.getElementById('decrypt-form');
+    const prime_number = document.getElementById('prime');
+    let inputsValid = {
+        prime: false,
+        root: false,
+        key: false
+    };
+
+    // Prime number validation
+    function isPrime(num) {
+        if (num <= 1) return false;
+        for(let i = 2; i <= Math.sqrt(num); i++) {
+            if(num % i === 0) return false;
+        }
+        return true;
+    }
+
+    // Input validators
+    function validatePrime() {
+        const prime = document.getElementById('prime');
+        const validation = document.getElementById('prime-validation');
+        const value = parseInt(prime.value);
+        
+        inputsValid.prime = isPrime(value);
+        validation.textContent = inputsValid.prime ? 
+            'Valid prime number' : 'Number must be prime';
+        validation.className = `validation-message show ${inputsValid.prime ? 'text-success' : 'text-danger'}`;
+        updateEncryptButton();
+    }
+
+    function validateRoot() {
+        const root = document.getElementById('primitive-root');
+        const prime = document.getElementById('prime');
+        const validation = document.getElementById('root-validation');
+        
+        const rootVal = parseInt(root.value);
+        const primeVal = parseInt(prime.value);
+        
+        inputsValid.root = rootVal > 0 && rootVal < primeVal;
+        validation.textContent = inputsValid.root ?
+            'Valid primitive root' : 'Root must be less than prime';
+        validation.className = `validation-message show ${inputsValid.root ? 'text-success' : 'text-danger'}`;
+        updateEncryptButton();
+    }
+
+    function validatePrivateKey() {
+        const key = document.getElementById('private-key');
+        const prime = document.getElementById('prime');
+        const validation = document.getElementById('key-validation');
+        
+        const keyVal = parseInt(key.value);
+        const primeVal = parseInt(prime.value);
+        
+        inputsValid.key = keyVal > 0 && keyVal < primeVal;
+        validation.textContent = inputsValid.key ?
+            'Valid private key' : 'Key must be less than prime';
+        validation.className = `validation-message show ${inputsValid.key ? 'text-success' : 'text-danger'}`;
+        updateEncryptButton();
+    }
+
+    function updateEncryptButton() {
+        const button = encryptForm.querySelector('button[type="submit"]');
+        button.disabled = !Object.values(inputsValid).every(Boolean);
+    }
+
+    // Form handlers
+    async function handleEncrypt(e) {
+        e.preventDefault();
+        const formData = new FormData(encryptForm);
+        formData.append('operation', 'encrypt');
+        
+        try {
+            const response = await fetch('/elgamal/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Encryption failed');
+            
+            document.getElementById('public-key-result').value = data.public_key;
+            document.getElementById('cipher-result').value = 
+                `C1: ${data.c1}\nC2: ${data.c2.join(',')}`;
+            encryptForm.nextElementSibling.classList.add('show');
+            
+        } catch (error) {
+            showError('Encryption failed: ' + error.message);
+        }
+    }
+
+    async function handleDecrypt(e) {
+        e.preventDefault();
+        const formData = new FormData(decryptForm);
+        formData.append('operation', 'decrypt');
+        formData.append('prime', prime_number.value);
+        
+        try {
+            const response = await fetch('/elgamal/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Decryption failed');
+            
+            document.getElementById('decrypted-result').value = data.plaintext;
+            decryptForm.nextElementSibling.classList.add('show');
+            
+        } catch (error) {
+            showError('Decryption failed: ' + error.message);
+        }
+    }
+
+    // Event listeners
+    document.getElementById('prime').addEventListener('input', validatePrime);
+    document.getElementById('primitive-root').addEventListener('input', validateRoot);
+    document.getElementById('private-key').addEventListener('input', validatePrivateKey);
+    encryptForm.addEventListener('submit', handleEncrypt);
+    decryptForm.addEventListener('submit', handleDecrypt);
+
+    // Copy functionality
+    document.querySelectorAll('.btn-copy').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const textarea = document.getElementById(targetId);
+            textarea.select();
+            document.execCommand('copy');
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => this.innerHTML = originalText, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

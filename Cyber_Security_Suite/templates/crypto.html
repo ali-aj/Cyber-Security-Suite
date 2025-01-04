@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+
+{% block title %}Crypto Toolkit - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .crypto-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .algorithm-select {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+
+    .input-group textarea,
+    .input-group input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .input-group textarea {
+        min-height: 150px;
+        resize: vertical;
+    }
+
+    .input-group textarea:focus,
+    .input-group input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-process {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-process:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .result-container {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .crypto-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crypto-container">
+    <h1 class="page-header"><i class="fas fa-lock"></i> Crypto Toolkit</h1>
+    
+    <form id="crypto-form" method="post">
+        {% csrf_token %}
+        <div class="input-group">
+            <label for="operation">Select Algorithm:</label>
+            <select name="operation" id="operation" class="algorithm-select" required>
+                <option value="">Choose an operation...</option>
+                <optgroup label="RSA">
+                    <option value="rsa_encrypt">RSA Encrypt</option>
+                    <option value="rsa_decrypt">RSA Decrypt</option>
+                </optgroup>
+                <optgroup label="AES">
+                    <option value="aes_encrypt">AES Encrypt</option>
+                    <option value="aes_decrypt">AES Decrypt</option>
+                </optgroup>
+                <optgroup label="DES">
+                    <option value="des_encrypt">DES Encrypt</option>
+                    <option value="des_decrypt">DES Decrypt</option>
+                </optgroup>
+                <optgroup label="Advanced">
+                    <option value="hill_cipher_encrypt">Hill Cipher Encrypt</option>
+                    <option value="hill_cipher_decrypt">Hill Cipher Decrypt</option>
+                    <option value="elgamal_encrypt">ElGamal Encrypt</option>
+                    <option value="elgamal_decrypt">ElGamal Decrypt</option>
+                    <option value="diffie_hellman">Diffie-Hellman Key Exchange</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="text">Input Text:</label>
+            <textarea name="text" id="text" required></textarea>
+        </div>
+
+        <div class="input-group">
+            <label for="key">Key:</label>
+            <input type="text" name="key" id="key" required>
+        </div>
+
+        <button type="submit" class="btn-process">
+            <i class="fas fa-lock"></i> Process
+        </button>
+    </form>
+
+    <div class="result-container" id="results"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('crypto-form');
+    const operationSelect = document.getElementById('operation');
+    const keyInput = document.getElementById('key');
+    const resultsContainer = document.getElementById('results');
+
+    // Handle algorithm selection changes
+    operationSelect.addEventListener('change', function() {
+        const operation = this.value;
+        const keyLabel = document.querySelector('label[for="key"]');
+        
+        switch(operation) {
+            case 'rsa_encrypt':
+            case 'rsa_decrypt':
+                keyLabel.textContent = 'Public/Private Key (PEM format):';
+                break;
+            case 'aes_encrypt':
+            case 'aes_decrypt':
+                keyLabel.textContent = 'AES Key (16, 24, or 32 bytes):';
+                break;
+            case 'des_encrypt':
+            case 'des_decrypt':
+                keyLabel.textContent = 'DES Key (8 bytes):';
+                break;
+            case 'hill_cipher_encrypt':
+            case 'hill_cipher_decrypt':
+                keyLabel.textContent = 'Matrix Key (NxN):';
+                break;
+            case 'elgamal_encrypt':
+            case 'elgamal_decrypt':
+                keyLabel.textContent = 'Public/Private Key:';
+                break;
+            case 'diffie_hellman':
+                keyLabel.textContent = 'Private Key:';
+                break;
+        }
+    });
+
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        resultsContainer.style.display = 'none';
+        
+        try {
+            const response = await fetch('/crypto/process/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) throw new Error(data.message || 'Processing failed');
+            
+            resultsContainer.innerHTML = `
+                <div class="result-header">
+                    <h3>Results</h3>
+                    <button class="btn-copy" onclick="navigator.clipboard.writeText('${data.result}')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="result-content">
+                    <p><strong>Operation:</strong> ${data.operation}</p>
+                    <p><strong>Result:</strong></p>
+                    <pre>${data.result}</pre>
+                    ${data.info ? `<p class="info"><i class="fas fa-info-circle"></i> ${data.info}</p>` : ''}
+                </div>
+            `;
+            
+            resultsContainer.style.display = 'block';
+            
+        } catch (error) {
+            resultsContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    ${error.message}
+                </div>
+            `;
+            resultsContainer.style.display = 'block';
+        }
+    });
+
+    // Add key validation
+    keyInput.addEventListener('input', function() {
+        const operation = operationSelect.value;
+        let isValid = true;
+        
+        switch(operation) {
+            case 'aes_encrypt':
+            case 'aes_decrypt':
+                isValid = [16, 24, 32].includes(this.value.length);
+                break;
+            case 'des_encrypt':
+            case 'des_decrypt':
+                isValid = this.value.length === 8;
+                break;
+        }
+        
+        this.style.borderColor = isValid ? '#e1e1e1' : '#ef4444';
+    });
+});
+</script>
+{% endblock %}

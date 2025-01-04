@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+
+{% block title %}DES Encryption/Decryption{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .crypto-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .operation-section {
+        width: 48%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        color: var(--primary-color);
+        font-size: 1.8rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        background: white;
+    }
+
+    .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-encrypt,
+    .btn-decrypt {
+        width: 100%;
+        padding: 1rem;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-encrypt {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+    }
+
+    .btn-decrypt {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+
+    .result {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        display: none;
+    }
+
+    .result textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 0.8rem;
+        border: 1px solid #e1e1e1;
+        border-radius: 8px;
+        resize: vertical;
+        margin-bottom: 0.5rem;
+    }
+
+    .validation-message {
+        color: #ef4444;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .crypto-container {
+            flex-direction: column;
+        }
+        .operation-section {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-header"><i class="fas fa-key"></i> DES Encryption/Decryption</h1>
+
+<div class="crypto-container">
+    <div class="operation-section">
+        <h3 class="section-header"><i class="fas fa-lock"></i> Encryption</h3>
+        <form id="encrypt-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="plaintext">Plain Text:</label>
+                <textarea id="plaintext" name="plaintext" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="encrypt-key">Key (16 or 24 bytes):</label>
+                <input type="password" id="encrypt-key" name="key" required>
+                <div class="validation-message">Key must be exactly 16 or 24 bytes</div>
+            </div>
+            <button type="submit" class="btn-encrypt">
+                <i class="fas fa-lock"></i> Encrypt
+            </button>
+        </form>
+        <div class="result">
+            <textarea id="encrypted-result" readonly></textarea>
+            <button class="btn-copy" data-target="encrypted-result">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+        </div>
+    </div>
+
+    <div class="operation-section">
+        <h3 class="section-header"><i class="fas fa-unlock"></i> Decryption</h3>
+        <form id="decrypt-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="ciphertext">Cipher Text:</label>
+                <textarea id="ciphertext" name="ciphertext" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="decrypt-key">Key:</label>
+                <input type="password" id="decrypt-key" name="key" required>
+                <div class="validation-message">Key must be exactly 8 bytes</div>
+            </div>
+            <button type="submit" class="btn-decrypt">
+                <i class="fas fa-unlock"></i> Decrypt
+            </button>
+        </form>
+        <div class="result">
+            <textarea id="decrypted-result" readonly></textarea>
+            <button class="btn-copy" data-target="decrypted-result">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = {
+        encrypt: document.getElementById('encrypt-form'),
+        decrypt: document.getElementById('decrypt-form')
+    };
+
+    // Key validation
+    function validateKey(input) {
+        const key = input.value;
+        const isValid = new TextEncoder().encode(key).length === 16 || new TextEncoder().encode(key).length === 24;
+        const message = input.parentElement.querySelector('.validation-message');
+        message.style.display = isValid ? 'none' : 'block';
+        return isValid;
+    }
+
+    // Form submission handler
+    async function handleSubmit(e, action) {
+        e.preventDefault();
+        const form = e.target;
+        const key = form.querySelector('input[name="key"]');
+        
+        if (!validateKey(key)) return;
+
+        const resultArea = document.getElementById(`${action}ed-result`);
+        const resultDiv = form.nextElementSibling;
+
+        try {
+            const formData = new FormData(form);
+            formData.append('action', 'des_' + action);
+
+            const response = await fetch('/des/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+
+            resultArea.value = data.result;
+            resultDiv.style.display = 'block';
+
+        } catch (error) {
+            resultArea.value = `Error: ${error.message}`;
+            resultDiv.style.display = 'block';
+        }
+    }
+
+    // Event listeners
+    forms.encrypt.addEventListener('submit', e => handleSubmit(e, 'encrypt'));
+    forms.decrypt.addEventListener('submit', e => handleSubmit(e, 'decrypt'));
+
+    // Copy functionality
+    document.querySelectorAll('.btn-copy').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const textarea = document.getElementById(targetId);
+            textarea.select();
+            document.execCommand('copy');
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => this.innerHTML = originalText, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Diffie-Hellman Key Exchange{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        color: var(--primary-color);
+        font-size: 2.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        animation: fadeIn 0.5s ease;
+    }
+
+    .crypto-container {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        animation: slideUp 0.5s ease;
+    }
+
+    .operation-section {
+        width: 100%;
+        max-width: 600px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .operation-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .form-group label {
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-group input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .btn-generate {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        color: white;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+
+    .btn-generate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .result {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .validation-message {
+        color: var(--accent-color);
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+        .crypto-container {
+            padding: 1rem;
+        }
+        .operation-section {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-header"><i class="fas fa-handshake"></i> Diffie-Hellman Key Exchange</h1>
+<div class="crypto-container">
+    <div class="operation-section">
+        <form id="generate-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="prime">Prime Number (p):</label>
+                <input type="number" id="prime" name="prime" required min="2">
+                <span class="validation-message" id="prime-validation"></span>
+            </div>
+            <div class="form-group">
+                <label for="generator">Generator (g):</label>
+                <input type="number" id="generator" name="generator" required min="2">
+                <span class="validation-message" id="generator-validation"></span>
+            </div>
+            <button type="submit" class="btn-generate">Generate Keys</button>
+        </form>
+        <div class="result">
+            <div class="result-item">
+                <label>Shared Secret:</label>
+                <textarea id="shared-secret" readonly></textarea>
+                <button class="btn-copy" data-target="shared-secret">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('generate-form');
+    let validInputs = { prime: false, generator: false };
+
+    function isPrime(num) {
+        if (num <= 1) return false;
+        for (let i = 2; i <= Math.sqrt(num); i++) {
+            if (num % i === 0) return false;
+        }
+        return true;
+    }
+
+    function validatePrime() {
+        const prime = document.getElementById('prime');
+        const validation = document.getElementById('prime-validation');
+        const value = parseInt(prime.value);
+        
+        validInputs.prime = isPrime(value);
+        validation.textContent = validInputs.prime ? 'Valid prime number' : 'Must be prime';
+        validation.className = `validation-message show ${validInputs.prime ? 'text-success' : 'text-danger'}`;
+        updateSubmitButton();
+    }
+
+    function validateGenerator() {
+        const generator = document.getElementById('generator');
+        const prime = document.getElementById('prime');
+        const validation = document.getElementById('generator-validation');
+        
+        const g = parseInt(generator.value);
+        const p = parseInt(prime.value);
+        
+        validInputs.generator = g > 1 && g < p;
+        validation.textContent = validInputs.generator ? 
+            'Valid generator' : 'Generator must be between 1 and p';
+        validation.className = `validation-message show ${validInputs.generator ? 'text-success' : 'text-danger'}`;
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        const button = form.querySelector('button[type="submit"]');
+        button.disabled = !Object.values(validInputs).every(Boolean);
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const resultArea = document.getElementById('shared-secret');
+        
+        try {
+            const formData = new FormData(this);
+            const response = await fetch('/diffie_hellman/generate/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message);
+            
+            resultArea.value = `Public Key: ${data.public_key}\nPrivate Key: ${data.private_key}\nShared Secret: ${data.shared_secret}`;
+            this.nextElementSibling.style.display = 'block';
+            
+        } catch (error) {
+            resultArea.value = `Error: ${error.message}`;
+        }
+    });
+
+    document.getElementById('prime').addEventListener('input', validatePrime);
+    document.getElementById('generator').addEventListener('input', validateGenerator);
+    
+    document.querySelector('.btn-copy').addEventListener('click', function() {
+        const targetId = this.dataset.target;
+        const textarea = document.getElementById(targetId);
+        textarea.select();
+        document.execCommand('copy');
+        
+        const originalText = this.innerHTML;
+        this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => this.innerHTML = originalText, 2000);
+    });
+});
+</script>
+{% endblock %}

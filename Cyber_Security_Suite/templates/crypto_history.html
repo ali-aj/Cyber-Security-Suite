@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}Crypto History - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .crypto-history-container {
+        padding: 2rem;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.8rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        outline: none;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: var(--primary-color);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    .operation-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .operation-rsa { background: #d1f2eb; color: #27ae60; }
+    .operation-aes { background: #e8f6f3; color: #16a085; }
+    .operation-des { background: #fef3c7; color: #f59e0b; }
+
+    .btn-export {
+        padding: 0.8rem 1.5rem;
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+        .crypto-history-container {
+            padding: 1rem;
+        }
+        .controls {
+            flex-direction: column;
+        }
+        table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crypto-history-container">
+    <div class="page-header">
+        <h1>Crypto Operation History</h1>
+        <button class="btn-export">
+            <i class="fas fa-download"></i> Export
+        </button>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-input" placeholder="Search operations...">
+        <select class="search-input">
+            <option value="">All Operations</option>
+            <option value="RSA">RSA</option>
+            <option value="AES">AES</option>
+            <option value="DES">DES</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID <i class="fas fa-sort"></i></th>
+                    <th>Operation <i class="fas fa-sort"></i></th>
+                    <th>Input <i class="fas fa-sort"></i></th>
+                    <th>Output <i class="fas fa-sort"></i></th>
+                    <th>Timestamp <i class="fas fa-sort"></i></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for op in operations %}
+                <tr>
+                    <td>{{ op.id }}</td>
+                    <td>
+                        <span class="operation-badge operation-{{ op.operation_type|lower }}">
+                            {{ op.operation_type }}
+                        </span>
+                    </td>
+                    <td>{{ op.input_text|truncatechars:30 }}</td>
+                    <td>{{ op.output_text|truncatechars:30 }}</td>
+                    <td>{{ op.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <button class="btn-view" data-id="{{ op.id }}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No crypto operations found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input.search-input');
+    const operationSelect = document.querySelector('select.search-input');
+    const tableBody = document.querySelector('tbody');
+    const exportBtn = document.querySelector('.btn-export');
+    let currentSort = { column: 'id', direction: 'asc' };
+
+    // Search and Filter
+    function filterOperations() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedOp = operationSelect.value.toLowerCase();
+        
+        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
+            const operation = row.cells[1].textContent.toLowerCase();
+            const input = row.cells[2].textContent.toLowerCase();
+            const output = row.cells[3].textContent.toLowerCase();
+            
+            const matchesSearch = input.includes(searchTerm) || 
+                                output.includes(searchTerm) ||
+                                operation.includes(searchTerm);
+            const matchesType = !selectedOp || operation.includes(selectedOp);
+            
+            row.style.display = matchesSearch && matchesType ? '' : 'none';
+        });
+    }
+
+    // Table Sorting
+    function sortTable(column) {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        const direction = currentSort.column === column && 
+                         currentSort.direction === 'asc' ? 'desc' : 'asc';
+        
+        rows.sort((a, b) => {
+            let aVal = a.cells[getColumnIndex(column)].textContent.trim();
+            let bVal = b.cells[getColumnIndex(column)].textContent.trim();
+            
+            if (column === 'timestamp') {
+                aVal = new Date(aVal);
+                bVal = new Date(bVal);
+            }
+            
+            return direction === 'asc' ? 
+                   String(aVal).localeCompare(String(bVal)) : 
+                   String(bVal).localeCompare(String(aVal));
+        });
+        
+        rows.forEach(row => tableBody.appendChild(row));
+        updateSortIcons(column, direction);
+        currentSort = { column, direction };
+    }
+
+    // Export Operations
+    function exportOperations() {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        let csv = 'ID,Operation,Input,Output,Timestamp\n';
+        
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const cells = Array.from(row.cells).slice(0, -1);
+                csv += cells.map(cell => `"${cell.textContent.trim()}"`).join(',') + '\n';
+            }
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `crypto_operations_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    // View Operation Details
+    function viewOperationDetails(id) {
+        fetch(`/crypto/operation/${id}/`)
+            .then(response => response.json())
+            .then(data => {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h3>Operation Details</h3>
+                        <div class="details">
+                            <p><strong>Operation:</strong> ${data.operation_type}</p>
+                            <p><strong>Input:</strong> ${data.input_text}</p>
+                            <p><strong>Output:</strong> ${data.output_text}</p>
+                            <p><strong>Timestamp:</strong> ${data.timestamp}</p>
+                        </div>
+                        <button class="btn-copy">Copy Details</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                modal.querySelector('.close').onclick = () => modal.remove();
+                modal.querySelector('.btn-copy').onclick = () => {
+                    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+                };
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', filterOperations);
+    operationSelect.addEventListener('change', filterOperations);
+    exportBtn.addEventListener('click', exportOperations);
+    
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', () => viewOperationDetails(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('th').forEach(header => {
+        if (header.querySelector('i')) {
+            header.addEventListener('click', () => {
+                const column = header.textContent.trim().split(' ')[0].toLowerCase();
+                sortTable(column);
+            });
+        }
+    });
+
+    // Utility Functions
+    function getColumnIndex(columnName) {
+        const headers = Array.from(document.querySelectorAll('th'));
+        return headers.findIndex(header => 
+            header.textContent.toLowerCase().includes(columnName.toLowerCase()));
+    }
+
+    function updateSortIcons(column, direction) {
+        document.querySelectorAll('th i').forEach(icon => {
+            const header = icon.parentElement;
+            if (header.textContent.toLowerCase().includes(column)) {
+                icon.className = `fas fa-sort-${direction === 'asc' ? 'up' : 'down'}`;
+            } else {
+                icon.className = 'fas fa-sort';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

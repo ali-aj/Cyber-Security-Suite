@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}IDS Logs - Cybersecurity Suite{% endblock %}
+
+{% block extra_css %}
+<style>
+    .logs-container {
+        padding: 2rem;
+        animation: fadeIn 0.5s ease;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 0.8rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: var(--primary-color);
+        color: white;
+        padding: 1rem;
+        text-align: left;
+    }
+
+    td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background: #f8f9fa;
+    }
+
+    .severity {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .severity-high { 
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .severity-medium {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .severity-low {
+        background: #d1f2eb;
+        color: #27ae60;
+    }
+
+    .btn-export {
+        padding: 0.8rem 1.5rem;
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+        .logs-container {
+            padding: 1rem;
+        }
+        .controls {
+            flex-direction: column;
+        }
+        table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+    <div class="page-header">
+        <h1>IDS Logs</h1>
+        <button class="btn-export">
+            <i class="fas fa-download"></i> Export Logs
+        </button>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-input" placeholder="Search logs...">
+        <select class="search-input">
+            <option value="">All Severities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+        </select>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID <i class="fas fa-sort"></i></th>
+                    <th>Log Data <i class="fas fa-sort"></i></th>
+                    <th>Severity <i class="fas fa-sort"></i></th>
+                    <th>Timestamp <i class="fas fa-sort"></i></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    <td>{{ log.log_data|truncatechars:50 }}</td>
+                    <td>
+                        <span class="severity severity-{{ log.severity|lower }}">
+                            {{ log.severity }}
+                        </span>
+                    </td>
+                    <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <button class="btn-view" data-id="{{ log.id }}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input.search-input');
+    const severitySelect = document.querySelector('select.search-input');
+    const tableBody = document.querySelector('tbody');
+    const exportBtn = document.querySelector('.btn-export');
+    const sortHeaders = document.querySelectorAll('th[data-sort]');
+    let currentSort = { column: 'id', direction: 'asc' };
+
+    // Search and Filter
+    function filterLogs() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedSeverity = severitySelect.value.toLowerCase();
+        
+        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
+            const logData = row.cells[1].textContent.toLowerCase();
+            const severity = row.cells[2].textContent.toLowerCase();
+            const shouldShow = logData.includes(searchTerm) && 
+                             (!selectedSeverity || severity.includes(selectedSeverity));
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    }
+
+    // Sorting
+    function sortTable(column) {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        const direction = currentSort.column === column && 
+                         currentSort.direction === 'asc' ? 'desc' : 'asc';
+        
+        rows.sort((a, b) => {
+            let aVal = a.cells[getColumnIndex(column)].textContent;
+            let bVal = b.cells[getColumnIndex(column)].textContent;
+            
+            if (column === 'timestamp') {
+                aVal = new Date(aVal);
+                bVal = new Date(bVal);
+            }
+            
+            return direction === 'asc' ? 
+                   aVal.localeCompare(bVal) : 
+                   bVal.localeCompare(aVal);
+        });
+        
+        rows.forEach(row => tableBody.appendChild(row));
+        updateSortIcons(column, direction);
+        currentSort = { column, direction };
+    }
+
+    // Export Logs
+    function exportLogs() {
+        const rows = Array.from(tableBody.getElementsByTagName('tr'));
+        let csv = 'ID,Log Data,Severity,Timestamp\n';
+        
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const cells = Array.from(row.cells).slice(0, -1); // Exclude actions column
+                csv += cells.map(cell => `"${cell.textContent.trim()}"`).join(',') + '\n';
+            }
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ids_logs_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    // View Log Details
+    function viewLogDetails(id) {
+        fetch(`/ids/log/${id}/`)
+            .then(response => response.json())
+            .then(data => {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <h3>Log Details</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <button onclick="this.parentElement.parentElement.remove()">Close</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', filterLogs);
+    severitySelect.addEventListener('change', filterLogs);
+    exportBtn.addEventListener('click', exportLogs);
+    
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', () => viewLogDetails(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('th').forEach(header => {
+        if (header.querySelector('i')) {
+            header.addEventListener('click', () => {
+                const column = header.textContent.trim().split(' ')[0].toLowerCase();
+                sortTable(column);
+            });
+        }
+    });
+
+    // Utility Functions
+    function getColumnIndex(columnName) {
+        const headers = Array.from(document.querySelectorAll('th'));
+        return headers.findIndex(header => 
+            header.textContent.toLowerCase().includes(columnName.toLowerCase()));
+    }
+
+    function updateSortIcons(column, direction) {
+        document.querySelectorAll('th i').forEach(icon => {
+            const header = icon.parentElement;
+            if (header.textContent.toLowerCase().includes(column)) {
+                icon.className = `fas fa-sort-${direction === 'asc' ? 'up' : 'down'}`;
+            } else {
+                icon.className = 'fas fa-sort';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
